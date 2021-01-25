@@ -319,7 +319,7 @@ Serial::SerialImpl::reconfigurePort ()
     struct serial_struct ser;
 
     if (-1 == ioctl (fd_, TIOCGSERIAL, &ser)) {
-      THROW (IOException, errno);
+      // THROW (IOException, errno);
     }
 
     // set custom divisor
