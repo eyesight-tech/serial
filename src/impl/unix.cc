@@ -312,14 +312,14 @@ Serial::SerialImpl::reconfigurePort ()
     // and output speed.
     speed_t new_baud = static_cast<speed_t> (baudrate_);
     if (-1 == ioctl (fd_, IOSSIOSPEED, &new_baud, 1)) {
-      THROW (IOException, errno);
+      // THROW (IOException, errno);
     }
     // Linux Support
 #elif defined(__linux__) && defined (TIOCSSERIAL)
     struct serial_struct ser;
 
     if (-1 == ioctl (fd_, TIOCGSERIAL, &ser)) {
-      // THROW (IOException, errno);
+      THROW (IOException, errno);
     }
 
     // set custom divisor
