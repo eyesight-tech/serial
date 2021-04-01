@@ -602,6 +602,9 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
                                "a logical error!");
       }
     }
+    else{
+        break;
+    }
   }
   return bytes_read;
 }
