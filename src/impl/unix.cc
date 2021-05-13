@@ -542,8 +542,11 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
   long total_timeout_ms = timeout_.read_timeout_constant;
   total_timeout_ms += timeout_.read_timeout_multiplier * static_cast<long> (size);
   MillisecondTimer total_timeout(total_timeout_ms);
+  MillisecondTimer total_timeout_extended(2*total_timeout_ms);
+  MillisecondTimer* total_timeout_p =&total_timeout;
 
-  // Pre-fill buffer with available bytes
+
+    // Pre-fill buffer with available bytes
   {
     ssize_t bytes_read_now = ::read (fd_, buf, size);
     if (bytes_read_now > 0) {
@@ -552,7 +555,10 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
   }
 
   while (bytes_read < size) {
-    int64_t timeout_remaining_ms = total_timeout.remaining();
+      if(bytes_read>0U){
+          total_timeout_p = &total_timeout_extended;
+      }
+    int64_t timeout_remaining_ms = total_timeout_p->remaining();
     if (timeout_remaining_ms <= 0) {
       // Timed out
       break;
@@ -601,9 +607,6 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
                                "read, this shouldn't happen, might be "
                                "a logical error!");
       }
-    }
-    else{
-        break;
     }
   }
   return bytes_read;
