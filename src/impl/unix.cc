@@ -78,6 +78,18 @@ MillisecondTimer::remaining ()
   return millis;
 }
 
+void MillisecondTimer::expand (const uint32_t millis)
+{
+  int64_t tv_nsec = expiry.tv_nsec + (millis * 1e6);
+  if (tv_nsec >= 1e9) {
+    int64_t sec_diff = tv_nsec / static_cast<int> (1e9);
+    expiry.tv_nsec = tv_nsec % static_cast<int>(1e9);
+    expiry.tv_sec += sec_diff;
+  } else {
+    expiry.tv_nsec = tv_nsec;
+  }
+}
+
 timespec
 MillisecondTimer::timespec_now ()
 {
@@ -542,11 +554,8 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
   long total_timeout_ms = timeout_.read_timeout_constant;
   total_timeout_ms += timeout_.read_timeout_multiplier * static_cast<long> (size);
   MillisecondTimer total_timeout(total_timeout_ms);
-  MillisecondTimer total_timeout_extended(2*total_timeout_ms);
-  MillisecondTimer* total_timeout_p =&total_timeout;
 
-
-    // Pre-fill buffer with available bytes
+  // Pre-fill buffer with available bytes
   {
     ssize_t bytes_read_now = ::read (fd_, buf, size);
     if (bytes_read_now > 0) {
@@ -555,10 +564,7 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
   }
 
   while (bytes_read < size) {
-      if(bytes_read>0U){
-          total_timeout_p = &total_timeout_extended;
-      }
-    int64_t timeout_remaining_ms = total_timeout_p->remaining();
+    int64_t timeout_remaining_ms = total_timeout.remaining();
     if (timeout_remaining_ms <= 0) {
       // Timed out
       break;
@@ -599,6 +605,7 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
       }
       // If bytes_read < size then we have more to read
       if (bytes_read < size) {
+        total_timeout.expand(timeout_.inter_byte_timeout);
         continue;
       }
       // If bytes_read > size then we have over read, which shouldn't happen
@@ -606,6 +613,13 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
         throw SerialException ("read over read, too many bytes where "
                                "read, this shouldn't happen, might be "
                                "a logical error!");
+      }
+    }
+    else
+    {
+      // If an inter-byte timeout occured, break only if we recieved some data.
+      if (bytes_read > 0) {
+        break;
       }
     }
   }

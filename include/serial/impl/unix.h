@@ -57,6 +57,7 @@ class MillisecondTimer {
 public:
   MillisecondTimer(const uint32_t millis);
   int64_t remaining();
+  void expand(const uint32_t millis);
 
 private:
   static timespec timespec_now();
