@@ -605,7 +605,9 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size)
       }
       // If bytes_read < size then we have more to read
       if (bytes_read < size) {
-        total_timeout.expand(timeout_.inter_byte_timeout);
+        if (timeout_.inter_byte_timeout != Timeout::max()) {
+          total_timeout.expand(timeout_.inter_byte_timeout);
+        }
         continue;
       }
       // If bytes_read > size then we have over read, which shouldn't happen
